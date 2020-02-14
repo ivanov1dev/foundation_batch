@@ -1,0 +1,65 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function foundation_batch_install() {
+  variable_set('batch_job_time_limit', 1000);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function foundation_batch_uninstall() {
+  variable_del('batch_job_time_limit');
+}
+
+/**
+ * Implements hook_schema().
+ */
+function foundation_batch_schema() {
+  $schema['batch_job'] = array(
+    'description' => 'Таблица пакетных заданий.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'Идентификатор задания.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'timestamp' => array(
+        'description' => 'Дата постановки задания.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'context' => array(
+        'description' => 'Контекст задания.',
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'uid' => array(
+        'description' => 'Идентификатор пользователя.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'status' => array(
+        'description' => 'Статус задания.',
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'initial',
+      ),
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'itimestamp' => array('timestamp'),
+      'istatus' => array('status'),
+    ),
+  );
+
+  return $schema;
+}

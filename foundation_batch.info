@@ -1,0 +1,17 @@
+name = Foundation Batch
+core = 7.x
+package = Foundation
+version = 7.x-2.7
+project = foundation_batch
+project path = sites/all/modules/third
+
+files[] = class/Batch.php
+files[] = class/Job/BatchJobInterface.php
+files[] = class/Job/BatchJob.php
+files[] = class/Job/BatchJobFactoryInterface.php
+files[] = class/Job/BatchJobFactory.php
+files[] = class/Reader/BatchJobReaderInterface.php
+files[] = class/Reader/BatchJobReader.php
+files[] = class/Writer/BatchJobWriterInterface.php
+files[] = class/Writer/BatchJobWriter.php
+files[] = class/Test/BatchJobTest.php

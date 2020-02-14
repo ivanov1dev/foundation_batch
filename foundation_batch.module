@@ -1,0 +1,178 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function foundation_batch_menu() {
+  $items = array();
+
+  $items['batch_job/%'] = array(
+    'title' => 'Пакетный обработчик',
+    'page callback' => 'batch_job_start',
+    'page arguments' => array(1),
+    'access callback' => 'batch_job_access',
+    'access arguments' => array(1),
+    'type' => MENU_CALLBACK,
+  );
+  $items['batch_job/%/process'] = array(
+    'title' => 'Пакетный обработчик',
+    'page callback' => 'batch_job_process',
+    'page arguments' => array(1),
+    'access callback' => 'batch_job_access',
+    'access arguments' => array(1),
+    'type' => MENU_CALLBACK,
+  );
+  $items['batch_job/%/state'] = array(
+    'title' => 'Пакетный обработчик',
+    'page callback' => 'batch_job_process',
+    'page arguments' => array(1),
+    'access callback' => 'batch_job_access',
+    'access arguments' => array(1),
+    'type' => MENU_CALLBACK,
+  );
+  $items['batch_job/%/complete'] = array(
+    'title' => 'Пакетный обработчик',
+    'page callback' => 'batch_job_complete',
+    'page arguments' => array(1),
+    'access callback' => 'batch_job_access',
+    'access arguments' => array(1),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['batch_job/test'] = array(
+    'page callback' => 'batch_job_test',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Обработчик доступа.
+ *
+ * @param string $id
+ *   Идентификатор задания.
+ *
+ * @return bool
+ *   Результат проверки доступа.
+ */
+function batch_job_access($id) {
+  global $user;
+
+  if ($access = user_access('access content')) {
+    try {
+      $job = Batch::get($id);
+      $access = $job->getUid() == $user->uid;
+    }
+    catch (\InvalidArgumentException $e) {
+      $access = FALSE;
+    }
+  }
+
+  return $access;
+}
+
+/**
+ * Запуск исполнения задания.
+ *
+ * @param string $id
+ *   Идентификатор задания.
+ *
+ * @return string
+ *   Контент страницы.
+ */
+function batch_job_start($id) {
+  $job = Batch::get($id);
+  $status = $job->getStatus();
+
+  if ($status == 'initial') {
+    $job->start();
+    Batch::set($job);
+  }
+  elseif ($status == 'complete') {
+    drupal_goto(sprintf('batch_job/%s/complete', $job->getId()));
+  }
+  elseif ($status != 'process') {
+    drupal_not_found();
+    exit();
+  }
+
+  return theme('batch_job', array('job' => $job));
+}
+
+/**
+ * Исполнение задания.
+ *
+ * @param string $id
+ *   Идентификатор задания.
+ */
+function batch_job_process($id) {
+  // загрузка батча
+  $job = Batch::get($id);
+  // процессинг батча
+  Batch::process($job);
+  // обновление батча
+  Batch::set($job);
+
+  drupal_add_http_header('Content-Type', 'application/json');
+  print drupal_json_encode(Batch::state($job));
+  drupal_exit();
+}
+
+/**
+ * Завершение задания.
+ *
+ * @param string $id
+ *   Идентификатор задания.
+ *
+ * @return string
+ *   Контент страницы.
+ */
+function batch_job_complete($id) {
+  $job = Batch::get($id);
+  $job->redirect();
+
+  return theme('batch_job_complete', array('job' => $job));
+}
+
+/**
+ * Тестовое задание.
+ */
+function batch_job_test() {
+  $job = Batch::create('test');
+  drupal_goto('batch_job/' . $job->getId());
+}
+
+/**
+ * Implements hook_theme().
+ */
+function foundation_batch_theme($existing, $type, $theme, $path) {
+  return array(
+    'batch_job' => array(
+      'variables' => array('job' => NULL),
+      'template' => 'template/batch-job',
+    ),
+    'batch_job_complete' => array(
+      'variables' => array('job' => NULL),
+      'template' => 'template/batch-job-complete',
+    ),
+  );
+}
+
+/**
+ * Implements hook_preprocess_batch_job().
+ */
+function foundation_batch_preprocess_batch_job(&$variables) {
+  drupal_set_title($variables['job']->title());
+
+  drupal_add_js(array('batch' => Batch::state($variables['job'])), 'setting');
+  drupal_add_js(drupal_get_path('module', 'foundation_batch') . '/js/batch.js');
+}
+
+/**
+ * Implements hook_preprocess_batch_job_complete().
+ */
+function foundation_batch_preprocess_batch_job_complete(&$variables) {
+  drupal_set_title($variables['job']->title());
+}
